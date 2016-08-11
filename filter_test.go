@@ -53,15 +53,10 @@ type Sample1Table struct {
 	*Table
 }
 
-var sample1Table *Sample1Table
-
 func NewSample1Table() *Sample1Table {
-	if sample1Table == nil {
-		sample1Table = &Sample1Table{
-			Table: NewTable(new(Sample1)),
-		}
+	return &Sample1Table{
+		Table: NewTable(new(Sample1)),
 	}
-	return sample1Table
 }
 
 func (tb *Sample1Table) Id() *Field       { return tb.Field() }
@@ -72,15 +67,10 @@ type Sample2Table struct {
 	*Table
 }
 
-var sample2Table *Sample2Table
-
 func NewSample2Table() *Sample2Table {
-	if sample2Table == nil {
-		sample2Table = &Sample2Table{
-			Table: NewTable(new(Sample2)),
-		}
+	return &Sample2Table{
+		Table: NewTable(new(Sample2)),
 	}
-	return sample2Table
 }
 
 func (tb *Sample2Table) Id() *Field       { return tb.Field() }
