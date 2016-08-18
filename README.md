@@ -32,8 +32,11 @@ Or `(col1 = v1 AND col2 = v2 AND col3 = v3)`:
 col1.Eq(v1).And(col2.Eq(v2), col3.Eq(v3))
 ```
 
-Or `col1 = col2`:
+Or in different columns `col1 = col2`:
+
+```go
 col1.Eq(col2)
+```
 
 ## Default function
 
