@@ -47,10 +47,10 @@ col1.Eq(col2)
 - col.In(ve): `col in (v)`
 - col.Between(v1, v2) 或 col.Between([]T{v1, v2}): `col >= v1 AND col <= v2`
 - col.Outside(v1, v2) 或 col.Outside([]T{v1, v2}): `col < v1 AND col > v2`
-- string only: col.Like(s): `col LIKE s`
-- string only: col.Startswith(s): `col LIKE s%`
-- string only: col.Endswith(s): `col LIKE %s`
-- string only: col.Contains(s): `col LIKE %s%`
+- 限字符串 col.Like(s): `col LIKE s`
+- 限字符串 col.Startswith(s): `col LIKE s%`
+- 限字符串 col.Endswith(s): `col LIKE %s`
+- 限字符串 col.Contains(s): `col LIKE %s%`
 
 ## 示例
 
