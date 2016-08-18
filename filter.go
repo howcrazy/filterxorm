@@ -34,6 +34,8 @@ type Condition interface {
 	Values() []interface{}
 	And(vs ...Condition) Condition
 	Or(vs ...Condition) Condition
+	Where(sess *xorm.Session) *xorm.Session
+	Do(func(sess *xorm.Session))
 }
 
 func NewCondition(conditionStr string, fields []*Field, values []interface{}) Condition {
@@ -80,6 +82,16 @@ func (condi *condition) Or(vs ...Condition) Condition {
 	conditions[0] = condi
 	return Or(append(conditions, vs...)...)
 }
+func (condi *condition) Where(sess *xorm.Session) *xorm.Session {
+	sess.Where(condi.CondiStr(), condi.Values()...)
+	return sess
+}
+func (condi *condition) Do(f func(sess *xorm.Session)) {
+	sess := condi.engine.NewSession()
+	defer sess.Close()
+	sess.Where(condi.CondiStr(), condi.Values()...)
+	f(sess)
+}
 
 type conditionOper struct {
 	engine     *xorm.Engine
@@ -116,6 +128,19 @@ func (oper *conditionOper) Values() (vs []interface{}) {
 }
 func (oper *conditionOper) And(vs ...Condition) Condition { return And(vs...) }
 func (oper *conditionOper) Or(vs ...Condition) Condition  { return Or(vs...) }
+func (oper *conditionOper) Where(sess *xorm.Session) *xorm.Session {
+	sess.Where(oper.CondiStr(), oper.Values()...)
+	return sess
+}
+func (oper *conditionOper) EWhere() *xorm.Session {
+	return oper.engine.Where(oper.CondiStr(), oper.Values()...)
+}
+func (oper *conditionOper) Do(f func(sess *xorm.Session)) {
+	sess := oper.engine.NewSession()
+	defer sess.Close()
+	sess.Where(oper.CondiStr(), oper.Values()...)
+	f(sess)
+}
 
 func NewField(table *Table, fieldName string) *Field {
 	return &Field{table: table, fieldName: fieldName}
@@ -265,10 +290,11 @@ func (tb *Table) getTableName(engine *xorm.Engine) string {
 	return tb.tableName
 }
 
-func (tb *Table) getColumenName(engine *xorm.Engine, name string) string {
+func (tb *Table) getColumenName(engine *xorm.Engine, fieldName string) string {
 	tb.bindEngine(engine)
-	if nn, ok := tb.columnNames[name]; ok {
-		name = nn
+	name, ok := tb.columnNames[fieldName]
+	if !ok {
+		panic(fmt.Sprintf(`Field "%s" is not exist in table "%s"`, fieldName, tb.tableName))
 	}
 	return name
 }

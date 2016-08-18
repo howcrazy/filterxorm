@@ -26,25 +26,29 @@ type Sample2 struct {
 
 func TestTable(t *testing.T) {
 	var condi Condition
+	sess := engine.NewSession()
+	defer sess.Close()
 
-	table := NewTable(new(Sample1))
-	fId := table.GetField("Id")
-	fName := table.GetField("Name")
-	fCreateAt := table.GetField("CreateAt")
+	sample1 := new(Sample1)
+	tSample1 := NewTable(sample1)
+	fId := tSample1.GetField("Id")
+	fName := tSample1.GetField("Name")
 
-	condi = fId.In([]int{1, 2, 3}).And(fName.Startswith("begin")).Build(engine)
-	showCondi(condi)
+	items := make([]Sample1, 0)
+	condi = fId.In([]int{1, 2}).And(fName.Endswith("y")).Build(engine)
+	if err := condi.Where(sess).Find(&items); err != nil {
+		t.Error(err.Error())
+	}
+	debug(items)
 
-	timeBegin, _ := time.Parse("2006-01-02 15:04:05", "2016-01-01 00:00:00")
-	condi = And(
-		fId.Between(1, 100),
-		Or(
-			fName.Startswith("Anney"),
-			fName.Startswith("Tom"),
-		),
-		fCreateAt.Gte(timeBegin),
+	condi = Or(
+		fId.Between(1, 2),
+		fName.Eq("Kenny"),
 	).Build(engine)
-	showCondi(condi)
+	if _, err := condi.Where(sess).Get(sample1); err != nil {
+		t.Error(err.Error())
+	}
+	debug(sample1)
 }
 
 // Condition from struct
@@ -79,18 +83,32 @@ func (tb *Sample2Table) CreateAt() *Field { return tb.Field() }
 
 func TestStruct(t *testing.T) {
 	var condi Condition
+	var err error
 
-	sample1 := NewSample1Table()
-	sample2 := NewSample2Table()
+	sample1 := new(Sample1)
+	tSample1 := NewSample1Table()
 
-	condi = sample1.Id().Eq(1).Build(engine)
-	showCondi(condi)
+	items := make([]Sample1, 0)
+	condi = tSample1.Id().Eq(1).Build(engine)
+	condi.Do(func(sess *xorm.Session) {
+		err = sess.Find(&items)
+	})
+	if err != nil {
+		t.Error(err.Error())
+	}
+	debug(items)
 
-	condi = And(
-		sample1.Id().Eq(1),
-		sample2.Id().Eq(2),
+	condi = Or(
+		tSample1.Id().Between(1, 2),
+		tSample1.Name().Eq("Kenny"),
 	).Build(engine)
-	showCondi(condi)
+	condi.Do(func(sess *xorm.Session) {
+		_, err = sess.Get(sample1)
+	})
+	if err != nil {
+		t.Error(err.Error())
+	}
+	debug(sample1)
 }
 
 // Usecase in xorm
@@ -117,8 +135,32 @@ func showCondi(condi Condition) {
 }
 
 var engine *xorm.Engine
+var models []interface{}
 
 func init() {
-	engine, _ = xorm.NewEngine("mysql", "root:123@/test?charset=utf8")
+	engine, _ = xorm.NewEngine("mysql", "root:@/test?charset=utf8")
 	engine.ShowSQL = true
+	models = append(models, new(Sample1), new(Sample2))
+	if err := engine.Sync2(models...); err != nil {
+		panic(err.Error())
+		return
+	}
+	items := []interface{}{
+		Sample1{Name: "Kenny", CreateAt: time.Date(2016, 1, 1, 0, 0, 0, 0, time.Local)},
+		Sample1{Name: "Sindy", CreateAt: time.Date(2016, 2, 1, 0, 0, 0, 0, time.Local)},
+		Sample1{Name: "Sam", CreateAt: time.Date(2016, 3, 1, 0, 0, 0, 0, time.Local)},
+		Sample2{Value: 1, CreateAt: time.Date(2016, 4, 1, 0, 0, 0, 0, time.Local)},
+		Sample2{Value: 2, CreateAt: time.Date(2016, 5, 1, 0, 0, 0, 0, time.Local)},
+		Sample2{Value: 3, CreateAt: time.Date(2016, 6, 1, 0, 0, 0, 0, time.Local)},
+	}
+	if _, err := engine.NoAutoTime().Insert(items...); err != nil {
+		panic(err.Error())
+		return
+	}
+}
+
+func TestFinish(t *testing.T) {
+	if err := engine.DropTables(models...); err != nil {
+		t.Error(err.Error())
+	}
 }

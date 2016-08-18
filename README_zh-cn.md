@@ -1,10 +1,8 @@
 # FilterXorm
 
-[zh-CN](README_zh-cn.md)
+FilterXorm 用来构建Xorm的过滤条件
 
-FilterXorm is a tool for xorm to build filter conditions.
-
-Like this `(col1 = v1 AND (col2 >= v2 OR col2 < v3) AND (col3 = v4 OR col3 = v5))`:
+如过滤条件为 `(col1 = v1 AND (col2 >= v2 OR col2 < v3) AND (col3 = v4 OR col3 = v5))`：
 
 ```go
 filterxorm.And(
@@ -20,22 +18,25 @@ filterxorm.And(
 )
 ```
 
-Of course flow style is supported `((col1 = v1 AND col2 = v2) AND col3 = v3)`:
+也支持链式 `((col1 = v1 AND col2 = v2) AND col3 = v3)`：
 
 ```go
 col1.Eq(v1).And(col2.Eq(v2)).And(col3.Eq(v3))
 ```
 
-Or `(col1 = v1 AND col2 = v2 AND col3 = v3)`:
+或 `(col1 = v1 AND col2 = v2 AND col3 = v3)`:
 
 ```go
 col1.Eq(v1).And(col2.Eq(v2), col3.Eq(v3))
 ```
 
-Or `col1 = col2`:
-col1.Eq(col2)
+或者在两个不同的字段之间进行比较 `col1 = col2`：
 
-## Default function
+```go
+col1.Eq(col2)
+```
+
+## 默认条件
 
 - col.Eq(v): `col = v`
 - col.Ne(v): `col <> v`
@@ -44,16 +45,16 @@ col1.Eq(col2)
 - col.Lt(v): `col < v`
 - col.Lte(v): `col <= v`
 - col.In(ve): `col in (v)`
-- col.Between(v1, v2) or col.Between([]T{v1, v2}): `col >= v1 AND col <= v2`
-- col.Outside(v1, v2) or col.Outside([]T{v1, v2}): `col < v1 AND col > v2`
+- col.Between(v1, v2) 或 col.Between([]T{v1, v2}): `col >= v1 AND col <= v2`
+- col.Outside(v1, v2) 或 col.Outside([]T{v1, v2}): `col < v1 AND col > v2`
 - string only: col.Like(s): `col LIKE s`
 - string only: col.Startswith(s): `col LIKE s%`
 - string only: col.Endswith(s): `col LIKE %s`
 - string only: col.Contains(s): `col LIKE %s%`
 
-## Usage
+## 示例
 
-Model is:
+假设ORM对象的结构为：
 
 ```go
 type Sample struct{
@@ -62,7 +63,7 @@ type Sample struct{
 }
 ```
 
-First, Get column Field
+首先，获取字段：
 
 ```go
 tSample := filterxorm.NewTable(new(Sample))
@@ -70,7 +71,7 @@ fId := tSample.GetField("Id")
 fName := tSample.GetField("Name")
 ```
 
-Or get a table struct:
+也可以专门建立一个结构体：
 
 ```go
 type TSample struct{
@@ -88,7 +89,7 @@ fId := tSample.Id()
 fName := tSample.Name()
 ```
 
-Then, build the condition:
+然后，构建条件：
 
 ```go
 condi := filterxorm.Or(
@@ -97,9 +98,9 @@ condi := filterxorm.Or(
 ).Build(engine)
 ```
 
-Don't forget `Build(*xorm.Engine)`
+不要忘记 `Build(*xorm.Engine)`，需要通过xorm.Engine来获取某些关键字。
 
-After above step, we get ready to filter:
+完成以上几步，就可以使用到Xorm里了：
 
 ```go
 sess := engine.NewSession()
@@ -110,7 +111,7 @@ err := sess.Where(condi.CondiStr(), condi.Values()...).
     Find(&items)
 ```
 
-Or:
+或者：
 
 ```go
 sess := engine.NewSession()
@@ -119,7 +120,7 @@ defer sess.Close()
 err := condi.Where(sess).Find(&items)
 ```
 
-Or use new auto session (the session will close auto after query end):
+或者（这个会通过传入的engine自动产生一个xorm.Session并应用过滤条件，执行结束后会自动关闭）：
 
 ```go
 var err error
