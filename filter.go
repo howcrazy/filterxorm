@@ -83,6 +83,7 @@ func (condi *condition) Or(vs ...Condition) Condition {
 	return Or(append(conditions, vs...)...)
 }
 func (condi *condition) Where(sess *xorm.Session) *xorm.Session {
+	condi.Build(sess.Engine)
 	sess.Where(condi.CondiStr(), condi.Values()...)
 	return sess
 }
@@ -129,11 +130,9 @@ func (oper *conditionOper) Values() (vs []interface{}) {
 func (oper *conditionOper) And(vs ...Condition) Condition { return And(vs...) }
 func (oper *conditionOper) Or(vs ...Condition) Condition  { return Or(vs...) }
 func (oper *conditionOper) Where(sess *xorm.Session) *xorm.Session {
+	oper.Build(sess.Engine)
 	sess.Where(oper.CondiStr(), oper.Values()...)
 	return sess
-}
-func (oper *conditionOper) EWhere() *xorm.Session {
-	return oper.engine.Where(oper.CondiStr(), oper.Values()...)
 }
 func (oper *conditionOper) Do(f func(sess *xorm.Session)) {
 	sess := oper.engine.NewSession()
