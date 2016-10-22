@@ -127,8 +127,16 @@ func (oper *conditionOper) Values() (vs []interface{}) {
 	}
 	return
 }
-func (oper *conditionOper) And(vs ...Condition) Condition { return And(vs...) }
-func (oper *conditionOper) Or(vs ...Condition) Condition  { return Or(vs...) }
+func (oper *conditionOper) And(vs ...Condition) Condition {
+	conditions := make([]Condition, 1, len(vs)+1)
+	conditions[0] = oper
+	return And(append(conditions, vs...)...)
+}
+func (oper *conditionOper) Or(vs ...Condition) Condition {
+	conditions := make([]Condition, 1, len(vs)+1)
+	conditions[0] = oper
+	return Or(append(conditions, vs...)...)
+}
 func (oper *conditionOper) Where(sess *xorm.Session) *xorm.Session {
 	oper.Build(sess.Engine)
 	sess.Where(oper.CondiStr(), oper.Values()...)
@@ -230,11 +238,15 @@ func (f *Field) FindInSet(v interface{}) Condition {
 	return NewCondition("FIND_IN_SET(?, %s)", sliceFields(f), []interface{}{v})
 }
 
+func (f *Field) CName() string {
+	return f.table.getColumnName(nil, f.fieldName)
+}
+
 func (f *Field) Name(engine *xorm.Engine) string {
 	if f.name == "" {
 		names := []string{
 			f.table.getTableName(engine),
-			f.table.getColumenName(engine, f.fieldName),
+			f.table.getColumnName(engine, f.fieldName),
 		}
 		for i, name := range names {
 			names[i] = engine.Dialect().Quote(name)
@@ -270,7 +282,11 @@ func (tb *Table) bindEngine(engine *xorm.Engine) {
 	if tb.engine != nil {
 		return
 	}
-	tb.engine = engine
+	if engine != nil {
+		tb.engine = engine
+	} else {
+		engine = defaultEngine
+	}
 	tableInfo := engine.TableInfo(tb.bean)
 	tb.tableName = tableInfo.Name
 	columns := tableInfo.Columns()
@@ -289,7 +305,7 @@ func (tb *Table) getTableName(engine *xorm.Engine) string {
 	return tb.tableName
 }
 
-func (tb *Table) getColumenName(engine *xorm.Engine, fieldName string) string {
+func (tb *Table) getColumnName(engine *xorm.Engine, fieldName string) string {
 	tb.bindEngine(engine)
 	name, ok := tb.columnNames[fieldName]
 	if !ok {
@@ -313,4 +329,10 @@ func (tb *Table) getField(fieldName string) *Field {
 		tb.fields[fieldName] = field
 	}
 	return field
+}
+
+var defaultEngine *xorm.Engine
+
+func SetDefaultEngine(engine *xorm.Engine) {
+	defaultEngine = engine
 }
